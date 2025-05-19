@@ -1,0 +1,12 @@
+name: botndyr
+title: botndyr
+username: fishvise
+account: fishvise
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14784521
+bundleId: 10308439
+url: https://fishvice.shinyapps.io/botndyr/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE

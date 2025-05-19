@@ -1,0 +1,152 @@
+---
+title: "Botndyr"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r installations, eval = FALSE}
+
+```
+
+```{r get_data, eval = FALSE}
+
+```
+
+<!-- DO NOT FIDDLE WITH STUFF BELOW, JUST PRESS "Run Document" -->
+
+```{r smxapp}
+library(tidyverse)
+source("R/functions.R")
+load("data/data.RData")
+xlim <- range(st$lon)
+ylim <- range(st$lat)
+
+gg_base <-
+  ggplot2::ggplot() +
+  ggplot2::theme_void() +
+  ggplot2::geom_path(data = contour, 
+                     ggplot2::aes(lon, lat, group = g),
+                     colour = "grey") +
+  ggplot2::geom_polygon(data = island,
+                        ggplot2::aes(lon, lat),
+                        fill = "grey") +
+  ggplot2::geom_point(data = st,
+                      ggplot2::aes(lon, lat),
+                      colour = "blue",
+                      size = 1) +
+  ggplot2::scale_size_area(max_size = 50) +
+  ggplot2::coord_quickmap(xlim = xlim, ylim = ylim)
+
+Names <-
+  bi |>
+  dplyr::count(name) |>
+  dplyr::arrange(-n) |>
+  dplyr::pull(name)
+
+Verkefni <-
+  c("BIOICE", "HAFRO-JON BOGASON", "Rall_botndýr", "HAFRO-ÞISTILFJÖRÐUR", 
+    "HAFRO-STEFÁN ÁKI", "AG-COLL-14", "NI-SAFN", "Zoolgy of Iceland", 
+    "HAFRO", "JS-COLL-28", "AI-COLL", "JS-COLL-2002", "AI-COLL-1996", 
+    "JS-COLL-65", "HAFRO-JÓNBJÖRN", "AI-COLL-2000", "DREKINN", 
+    "JS-COLL-34", "AI-COLL-74", "HAFRO-STEINUNN HILMA", "AI-COLL-47", 
+    "AG-COLL-9", "JS-COLL-70", "LHI-Helgi Guðmundsson", "JS-COLL-52", 
+    "JS-COLL-66", "JS-COLL-1996", "AI-COLL-64", "MAREANO", "THOR", 
+    "NI-FISH", "JS-COLL-86", "JS-COLL-55", "THOR-ST.HUGSANL", "Ingolf Expedition", 
+    "SKALLAGRÍMUR", "BIOFAR", "Haakon Mosby", "HÍ-MAR-BJÖRK", 
+    "IceAge_SENCKENBERG", "FRÁTEKNAR FÆRSLUR", "DANA", "Fjaran_IPA", 
+    "Ymer 80", "LÍFFRST-GVH", "KARL-SKIRNIS", "SAM-BOWSER", "BIOICE-ATH", 
+    "Matthías Eydal")
+```
+
+Sidebar {.sidebar data-width=175}
+=====================================
+
+```{r}
+shiny::selectInput('name', 'Tegundaval', c(Choose='', Names), selectize=TRUE,
+                   selected = "Yoldiella lucida")
+
+
+```
+
+Forsíða
+=====================================  
+
+Column 
+-------------------------------------
+
+### Blöðrur
+
+
+```{r}
+renderPlot({
+  gg_base +
+    add_bubble(st |>
+                 dplyr::inner_join(bi |> dplyr::filter(name %in% input$name)))
+})
+
+```
+
+
+
+Column 
+-------------------------------------
+
+### Líkindi
+
+
+```{r}
+renderPlot({
+  
+  p_capture(input$name, st, bi) |>
+    dplyr::mutate(p = santoku::chop(p, breaks = c(0, 0.05, 0.10, 0.25, 0.50, 0.75, 1),
+                                    drop = FALSE)) |>
+    ggplot2::ggplot() +
+    ggplot2::theme_void() +
+    ggplot2::geom_tile(ggplot2::aes(glon, glat, fill = p)) +
+    ggplot2::geom_path(data = contour, 
+                       ggplot2::aes(lon, lat, group = g),
+                       colour = "grey") +
+    ggplot2::geom_polygon(data = island,
+                          ggplot2::aes(lon, lat),
+                          fill = "grey") +
+    ggplot2::geom_point(data = st,
+                        ggplot2::aes(lon, lat),
+                        colour = "blue",
+                        size = 1) +
+    ggplot2::coord_quickmap(xlim = xlim, ylim = ylim) +
+    ggplot2::scale_fill_viridis_d(option = "inferno", direction = -1,
+                                  drop = FALSE) +
+    ggplot2::labs(fill = "Probability\nof catpture")
+  
+})
+
+```
+
+
+### Umhverfi
+
+```{r}
+renderPlot({
+  st_env <-
+    st |>
+    dplyr::mutate(z = -z) |>
+    dplyr::select(.sid, Dýpi = z, Hiti = zt, Selta = zs) |>
+    tidyr::gather(var, val, -.sid)
+  st |>
+    dplyr::inner_join(bi |> dplyr::filter(name == input$name)) |>
+    dplyr::mutate(z = -z) |>
+    dplyr::select(.sid, Dýpi = z, Hiti = zt, Selta = zs) |>
+    tidyr::gather(var, val, -.sid) |>
+    ggplot2::ggplot(ggplot2::aes(x = 1, y = val)) +
+    ggplot2::theme_bw(base_size = 20) +
+    ggplot2::geom_violin(data = st_env, fill = "grey") +
+    ggplot2::geom_violin(scale = "width", alpha = 0.5, colour = "red") +
+    ggplot2::geom_jitter(size = 1, alpha = 0.5, colour = "red") +
+    ggplot2::facet_wrap(~ var, scales = "free_y") +
+    ggplot2::scale_x_discrete(NULL, NULL) +
+    ggplot2::labs(y = NULL)
+})
+
+```
+
+
